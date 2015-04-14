@@ -8,7 +8,7 @@ var Billing  = mongoose.model('Billing');
 var products = require('./products_controller.js');
 
 exports.getOrder = function(req, res) {
-	if(req.session.user) {
+	if(req.isAuthenticated()) {
 		Order.findOne({ _id: req.query.orderId }).exec(function(err, order) {
 			if(!order) {
 				res.json(404, { msg: 'Order not found.' });
@@ -23,8 +23,8 @@ exports.getOrder = function(req, res) {
 };
 
 exports.getOrders = function(req, res) {
-	if(req.session.user) {
-		Order.find({ userId: req.session.username }).exec(function(err, orders) {
+	if(req.isAuthenticated()) {
+		Order.find({ userId: req.user.identifier }).exec(function(err, orders) {
 			if(!orders) {
 				res.json(404, { msg: 'Orders not found.' });
 			} else {
@@ -38,13 +38,13 @@ exports.getOrders = function(req, res) {
 };
 
 exports.addOrder = function(req, res) {
-	if(req.session.user) {
+	if(req.isAuthenticated()) {
 		var orderShipping = new Address(req.body.updatedShipping);
 		var orderBilling  = new Billing(req.body.updatedBilling);
 		var orderItems    = req.body.orderItems;
 		
 		var newOrder = new Order({
-			userId:   req.session.username,
+			userId:   req.user.identifier,
 			items:    orderItems,
 			shipping: orderShipping,
 			billing:  orderBilling
@@ -54,7 +54,7 @@ exports.addOrder = function(req, res) {
 			if(err) {
 				res.json(500, "Failed to save order.");
 			} else {
-				Customer.update({ userId: req.session.username }, { $set: { cart: [] }}).exec(function(err, results) {
+				Customer.update({ userId: req.user.identifier }, { $set: { cart: [] }}).exec(function(err, results) {
 					if(err || results < 1) {
 						res.json(404, { msg: 'Failed to update cart.' });
 					} else {

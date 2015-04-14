@@ -1,5 +1,10 @@
-var crypto	= require('crypto');
-var express	= require('express');
+var crypto	 = require('crypto');
+var express	 = require('express');
+var passport = require('passport');
+
+var mongoose = require('mongoose');
+
+var Customer = mongoose.model('Customer');
 
 module.exports = function(app) {
 	var users = require('./controllers/users_controller');
@@ -17,9 +22,15 @@ module.exports = function(app) {
 	app.use('/images', express.static('./images'));
 	
 	app.get('/', function(req, res) {
-		if(req.session.user) {
-			res.render('index', { username: req.session.username,
-			                      msg:      req.session.msg });
+		if(req.isAuthenticated()) {
+			Customer.findOne({ userId: req.user.identifier }).exec(function(err, customer) {
+				if(!customer) {
+					customers.addCustomer(req.user.identifier);
+				}
+			});
+			
+			res.render('index', { username: req.user.displayName,
+			                      msg:      'Welcome!' });
 		} else {
 			req.session.msg = 'Access denied!';
 			res.redirect('/login');
@@ -27,7 +38,7 @@ module.exports = function(app) {
 	});
 	
 	app.get('/user', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			res.render('user', { msg: req.session.msg });
 		} else {
 			req.session.msg = 'Access denied!';
@@ -36,7 +47,7 @@ module.exports = function(app) {
 	});
 	
 	app.get('/signup', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			res.redirect('/');
 		}
 		
@@ -44,17 +55,23 @@ module.exports = function(app) {
 	});
 	
 	app.get('/login', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			res.redirect('/');
 		}
 		
 		res.render('login', { msg: req.session.msg });
 	});
 	
+	app.get('/auth/google', passport.authenticate('google'));
+	
+	app.get('/auth/google/return', passport.authenticate('google', {
+		successRedirect: '/',
+		failureRedirect: '/login'
+	}));
+	
 	app.get('/logout', function(req, res) {
-		req.session.destroy(function() {
-			res.redirect('/login');
-		});
+		req.logout();
+		res.redirect('/login');
 	});
 	
 	app.post('/signup',			users.signup);
@@ -64,7 +81,7 @@ module.exports = function(app) {
 	app.get('/user/profile',	users.getUserProfile);
 	
 	app.get('/comments', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			res.render('photos');
 		} else {
 			res.redirect('/login');
@@ -77,7 +94,7 @@ module.exports = function(app) {
 	app.get('/comments/get', comments.getComment);
 	
 	app.post('/comments/add', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			comments.addComment(req, res);
 		} else {
 			res.json(400, { msg: 'Must be authorized to add a comment.' });
@@ -85,7 +102,7 @@ module.exports = function(app) {
 	});
 	
 	app.get('/shopping', function(req, res) {
-		if(req.session.user) {
+		if(req.isAuthenticated()) {
 			res.render('shopping');
 		} else {
 			req.session.msg = 'Access denied!';

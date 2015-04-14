@@ -19,7 +19,7 @@ exports.addComment = function(req, res) {
 		} else {
 			var newComment = Reply(req.body.newComment);
 			
-			newComment.username = req.session.username;
+			newComment.username = req.user.displayName;
 			
 			addComment(req, res, commentThread, commentThread, req.body.parentCommentId, newComment);
 		}

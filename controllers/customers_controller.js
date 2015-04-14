@@ -5,8 +5,8 @@ var Address  = mongoose.model('Address');
 var Billing  = mongoose.model('Billing');
 
 exports.getCustomer = function(req, res) {
-	if(req.session.user) {
-		Customer.findOne({ userId: req.session.username }).exec(function(err, customer) {
+	if(req.isAuthenticated()) {
+		Customer.findOne({ userId: req.user.identifier }).exec(function(err, customer) {
 			if(!customer) {
 				res.json(404, { msg: 'Customer not found.' });
 			} else {
@@ -19,8 +19,8 @@ exports.getCustomer = function(req, res) {
 	}
 };
 
-exports.addCustomer = function(username) {
-	if(username) {
+exports.addCustomer = function(userId) {
+	if(userId) {
 		var shipping = new Address({
 			name:    '',
 			address: '',
@@ -39,7 +39,7 @@ exports.addCustomer = function(username) {
 		});
 			
 		var customer = new Customer({
-			userId:   username,
+			userId:   userId,
 			shipping: shipping,
 			billing:  billing,
 			cart:     []
@@ -53,15 +53,15 @@ exports.addCustomer = function(username) {
 			}
 		});
 	} else {
-		return 'Username not given';
+		return 'User ID not given';
 	}
 };
 
 exports.updateShipping = function(req, res) {
-	if(req.session.user) {
+	if(req.isAuthenticated()) {
 		var newShipping = new Address(req.body.updatedShipping);
 		
-		Customer.update({ userId: req.session.username }, { $set: { shipping: [newShipping.toObject()] } }).exec(function(err, results) {
+		Customer.update({ userId: req.user.identifier }, { $set: { shipping: [newShipping.toObject()] } }).exec(function(err, results) {
 			if(err || results < 1) {
 				res.json(404, { msg: 'Failed to update shipping.' });
 			} else {
@@ -75,10 +75,10 @@ exports.updateShipping = function(req, res) {
 };
 
 exports.updateBilling = function(req, res) {
-	if(req.session.user) {
+	if(req.isAuthenticated()) {
 		var newBilling = new Billing(req.body.updatedBilling);
 		
-		Customer.update({ userId: req.session.username }, { $set: { billing: [newBilling.toObject()] } }).exec(function(err, results) {
+		Customer.update({ userId: req.user.identifier }, { $set: { billing: [newBilling.toObject()] } }).exec(function(err, results) {
 			if(err || results < 1) {
 				res.json(404, { msg: 'Failed to update billing.' });
 			} else {
@@ -92,8 +92,8 @@ exports.updateBilling = function(req, res) {
 };
 
 exports.updateCart = function(req, res) {
-	if(req.session.user) {
-		Customer.update({ userId: req.session.username }, { $set: { cart: req.body.updatedCart } }).exec(function(err, results) {
+	if(req.isAuthenticated()) {
+		Customer.update({ userId: req.user.identifier }, { $set: { cart: req.body.updatedCart } }).exec(function(err, results) {
 			if(err || results < 1) {
 				res.json(404, { msg: 'Failed to update cart.' });
 			} else {
